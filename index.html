@@ -4,6 +4,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Glitch Formation</title>
   <link rel="stylesheet" href="./assets/css/global.css">
+  <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-analytics.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js"></script>
 </head>
 <body>
   <div id="wrap">
@@ -72,6 +75,21 @@
   </div>
 
   <script>
+    // Firebase 초기화 설정 (Firebase 콘솔에서 복사한 firebaseConfig 사용)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA-Jt6GX6c2bezrfhT-vOZmdG8RPrJGvjs",
+      authDomain: "glitch-fc-form.firebaseapp.com",
+      projectId: "glitch-fc-form",
+      storageBucket: "glitch-fc-form.appspot.com",
+      messagingSenderId: "88718781340",
+      appId: "1:88718781340:web:568d753fb0b703bf89b659",
+      measurementId: "G-XN1M8FGR6G"
+    };
+
+    // Firebase 앱 초기화
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);  // Firestore DB 참조
+
     document.addEventListener('DOMContentLoaded', function () {
       const playerTableBody = document.getElementById('playerTableBody');
       const positionTableBody = document.getElementById('positionTableBody');
@@ -82,9 +100,16 @@
       const addPlayerButton = document.getElementById('addPlayerButton');
       const clearPositionTableButton = document.getElementById('clearPositionTableButton');
 
-      // 로컬 스토리지에서 데이터 불러오기
-      const savedData = localStorage.getItem('formData');
-      const formData = savedData ? JSON.parse(savedData) : [];
+      let formData = [];
+
+      // Firestore에서 플레이어 데이터 가져오기
+      async function loadData() {
+        formData = await getPlayersFromFirestore();
+        renderPlayerTable();
+        renderPositionTable();
+      }
+
+      loadData(); // 데이터 로드
 
       function renderPlayerTable() {
         playerTableBody.innerHTML = '';
@@ -95,7 +120,7 @@
             <td>${player.first}</td>
             <td>${player.second}</td>
             <td>${player.third}</td>
-            <td><button class="button button_delete" data-index="${index}">삭제</button></td>
+            <td><button class="button button_delete" data-id="${player.id}">삭제</button></td>
           `;
           playerTableBody.appendChild(row);
         });
@@ -104,8 +129,8 @@
         const deleteButtons = document.querySelectorAll('.button_delete');
         deleteButtons.forEach(button => {
           button.addEventListener('click', function () {
-            const index = button.getAttribute('data-index');
-            deletePlayer(index);
+            const id = button.getAttribute('data-id');
+            deletePlayer(id);
           });
         });
       }
@@ -129,7 +154,7 @@
         });
       }
 
-      function addPlayer() {
+      async function addPlayer() {
         const name = inputName.value.trim().toUpperCase();
         const first = inputFirst.value.trim().toUpperCase();
         const second = inputSecond.value.trim().toUpperCase();
@@ -147,40 +172,37 @@
           return;
         }
 
-        formData.push({ name, first, second, third });
+        const player = { name, first, second, third };
 
-        // 로컬 스토리지에 데이터 저장
-        localStorage.setItem('formData', JSON.stringify(formData));
+        // Firebase에 새 플레이어 추가
+        await addPlayerToFirestore(player);
 
         inputName.value = '';
         inputFirst.value = '';
         inputSecond.value = '';
         inputThird.value = '';
-        renderPlayerTable();
-        renderPositionTable();
       }
 
-      function deletePlayer(index) {
-        formData.splice(index, 1); // 해당 인덱스의 플레이어 삭제
-        localStorage.setItem('formData', JSON.stringify(formData));
-        renderPlayerTable();
-        renderPositionTable();
+      async function deletePlayer(id) {
+        try {
+          await db.collection("players").doc(id).delete();  // Firestore에서 삭제
+          loadData();  // 삭제 후 데이터 갱신
+        } catch (error) {
+          console.error("Error deleting player: ", error);
+        }
       }
 
-      function clearPlayerTable() {
-        formData.length = 0; // 데이터 초기화
-        localStorage.setItem('formData', JSON.stringify(formData));
-        renderPlayerTable();
-        renderPositionTable();
-      }
-
-      function clearPositionTable() {
-        // 포지션 테이블은 플레이어 데이터 기반이므로, 초기화할 때 동일하게 처리
-        clearPlayerTable();
+      async function clearPlayerTable() {
+        // Firebase에서 모든 플레이어 삭제
+        const playersSnapshot = await db.collection("players").get();
+        playersSnapshot.forEach((doc) => {
+          doc.ref.delete();
+        });
+        loadData(); // 데이터 갱신
       }
 
       addPlayerButton.addEventListener('click', addPlayer);
-      clearPositionTableButton.addEventListener('click', clearPositionTable);
+      clearPositionTableButton.addEventListener('click', clearPlayerTable);
 
       document.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
@@ -197,9 +219,30 @@
         }
       });
 
-      // 초기 테이블 렌더링
-      renderPlayerTable();
-      renderPositionTable();
+      // Firebase Firestore에 플레이어 추가
+      async function addPlayerToFirestore(player) {
+        try {
+          await db.collection("players").add({
+            name: player.name,
+            first: player.first,
+            second: player.second,
+            third: player.third
+          });
+          console.log("Player added");
+          loadData();  // 새로 추가된 데이터로 테이블을 갱신합니다.
+        } catch (error) {
+          console.error("Error adding player: ", error);
+        }
+      }
+
+      async function getPlayersFromFirestore() {
+        const querySnapshot = await db.collection("players").get();
+        const formData = [];
+        querySnapshot.forEach((doc) => {
+          formData.push({ id: doc.id, ...doc.data() });
+        });
+        return formData;
+      }
     });
   </script>
 </body>
