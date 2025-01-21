@@ -1,0 +1,206 @@
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glitch Formation</title>
+  <link rel="stylesheet" href="./assets/css/global.css">
+</head>
+<body>
+  <div id="wrap">
+    <header id="header" class="header">
+      <h1 class="logo">글리치 FC</h1>
+    </header>
+    <main id="container" class="container">
+      <section class="section">
+        <div class="sticky_wrap">
+          <div class="inner">
+            <h2>선호 포지션 입력</h2>
+            <div class="input_area">
+              <input class="input input_name" type="text" id="inputName" placeholder="이름" />
+              <input class="input" type="text" id="inputFirst" placeholder="1지망" />
+              <input class="input" type="text" id="inputSecond" placeholder="2지망" />
+              <input class="input" type="text" id="inputThird" placeholder="3지망" />
+              <button class="button button_add" id="addPlayerButton">추가</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll_wrap">
+          <div class="inner">
+            <div class="form">
+              <div class="player_area">
+                <table>
+                  <colgroup>
+                    <col style="width: 20%;" />
+                    <col style="width: 20%;" />
+                    <col style="width: 20%;" />
+                    <col style="width: 20%;" />
+                    <col style="width: 20%;" />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <th>이름</th>
+                      <th>1지망</th>
+                      <th>2지망</th>
+                      <th>3지망</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="playerTableBody"></tbody>
+                </table>
+              </div>
+              <div class="position_area">
+                <table>
+                  <colgroup></colgroup>
+                  <thead>
+                    <tr>
+                      <th>포지션</th>
+                      <th>1지망</th>
+                      <th>2지망</th>
+                      <th>3지망</th>
+                    </tr>
+                  </thead>
+                  <tbody id="positionTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <button class="button button_clear" id="clearPositionTableButton">초기화</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const playerTableBody = document.getElementById('playerTableBody');
+      const positionTableBody = document.getElementById('positionTableBody');
+      const inputName = document.getElementById('inputName');
+      const inputFirst = document.getElementById('inputFirst');
+      const inputSecond = document.getElementById('inputSecond');
+      const inputThird = document.getElementById('inputThird');
+      const addPlayerButton = document.getElementById('addPlayerButton');
+      const clearPositionTableButton = document.getElementById('clearPositionTableButton');
+
+      // 로컬 스토리지에서 데이터 불러오기
+      const savedData = localStorage.getItem('formData');
+      const formData = savedData ? JSON.parse(savedData) : [];
+
+      function renderPlayerTable() {
+        playerTableBody.innerHTML = '';
+        formData.forEach((player, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${player.name}</td>
+            <td>${player.first}</td>
+            <td>${player.second}</td>
+            <td>${player.third}</td>
+            <td><button class="button button_delete" data-index="${index}">삭제</button></td>
+          `;
+          playerTableBody.appendChild(row);
+        });
+
+        // 삭제 버튼 클릭 이벤트
+        const deleteButtons = document.querySelectorAll('.button_delete');
+        deleteButtons.forEach(button => {
+          button.addEventListener('click', function () {
+            const index = button.getAttribute('data-index');
+            deletePlayer(index);
+          });
+        });
+      }
+
+      function renderPositionTable() {
+        positionTableBody.innerHTML = '';
+        const positions = [...new Set(formData.flatMap(player => [player.first, player.second, player.third]))];
+        positions.forEach(position => {
+          const firstChoice = formData.filter(player => player.first === position).map(player => player.name).join(', ');
+          const secondChoice = formData.filter(player => player.second === position).map(player => player.name).join(', ');
+          const thirdChoice = formData.filter(player => player.third === position).map(player => player.name).join(', ');
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${position}</td>
+            <td>${firstChoice || '-'}</td>
+            <td>${secondChoice || '-'}</td>
+            <td>${thirdChoice || '-'}</td>
+          `;
+          positionTableBody.appendChild(row);
+        });
+      }
+
+      function addPlayer() {
+        const name = inputName.value.trim().toUpperCase();
+        const first = inputFirst.value.trim().toUpperCase();
+        const second = inputSecond.value.trim().toUpperCase();
+        const third = inputThird.value.trim().toUpperCase();
+
+        const isEnglishOnly = /^[A-Z]+$/.test(first) && /^[A-Z]+$/.test(second) && /^[A-Z]+$/.test(third);
+
+        if (!name || !first || !second || !third) {
+          alert('입력 다 했어?.');
+          return;
+        }
+
+        if (!isEnglishOnly) {
+          alert('포지는 영어만 써.');
+          return;
+        }
+
+        formData.push({ name, first, second, third });
+
+        // 로컬 스토리지에 데이터 저장
+        localStorage.setItem('formData', JSON.stringify(formData));
+
+        inputName.value = '';
+        inputFirst.value = '';
+        inputSecond.value = '';
+        inputThird.value = '';
+        renderPlayerTable();
+        renderPositionTable();
+      }
+
+      function deletePlayer(index) {
+        formData.splice(index, 1); // 해당 인덱스의 플레이어 삭제
+        localStorage.setItem('formData', JSON.stringify(formData));
+        renderPlayerTable();
+        renderPositionTable();
+      }
+
+      function clearPlayerTable() {
+        formData.length = 0; // 데이터 초기화
+        localStorage.setItem('formData', JSON.stringify(formData));
+        renderPlayerTable();
+        renderPositionTable();
+      }
+
+      function clearPositionTable() {
+        // 포지션 테이블은 플레이어 데이터 기반이므로, 초기화할 때 동일하게 처리
+        clearPlayerTable();
+      }
+
+      addPlayerButton.addEventListener('click', addPlayer);
+      clearPositionTableButton.addEventListener('click', clearPositionTable);
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          const activeElement = document.activeElement;
+          if (
+            activeElement === inputName ||
+            activeElement === inputFirst ||
+            activeElement === inputSecond ||
+            activeElement === inputThird
+          ) {
+            addPlayer();
+            event.preventDefault();
+          }
+        }
+      });
+
+      // 초기 테이블 렌더링
+      renderPlayerTable();
+      renderPositionTable();
+    });
+  </script>
+</body>
+</html>
