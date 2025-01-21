@@ -1,0 +1,46 @@
+{
+  "form": [
+    {
+      "name": "조성호",
+      "first": "CDM",
+      "second": "CAM",
+      "third": "CB"
+    },
+    {
+      "name": "박상인",
+      "first": "CDM",
+      "second": "CAM",
+      "third": "CB"
+    },
+    {
+      "name": "고동근",
+      "first": "CDM",
+      "second": "RB",
+      "third": "LB"
+    },
+    {
+      "name": "금동현",
+      "first": "CDM",
+      "second": "CB",
+      "third": "RB"
+    },
+    {
+      "name": "김민식",
+      "first": "FW",
+      "second": "LW",
+      "third": "RW"
+    },
+    {
+      "name": "김현준",
+      "first": "RW",
+      "second": "CAM",
+      "third": "RB"
+    },
+    {
+      "name": "박민혁",
+      "first": "RB",
+      "second": "CDM",
+      "third": "CM"
+    }
+  ]
+}
